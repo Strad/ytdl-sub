@@ -2,11 +2,16 @@ import contextlib
 import logging
 import os
 import shutil
+import uuid
+from datetime import datetime, timezone
 from abc import ABC
 from pathlib import Path
 from typing import List
 from typing import Optional
 
+from yt_dlp.utils import sanitize_filename
+
+from ytdl_sub.hooks.hook_runner import HookRunner
 from ytdl_sub.config.plugin.plugin import Plugin
 from ytdl_sub.config.plugin.plugin import SplitPlugin
 from ytdl_sub.config.plugin.plugin_mapping import PluginMapping
@@ -107,6 +112,33 @@ class SubscriptionDownload(BaseSubscription, ABC):
                 output_file_name=output_info_json_name,
                 entry=entry,
             )
+
+        # Build hook context after moving files
+        final_filepath = str(Path(self.output_directory) / output_file_name)
+        context = {
+            "final_filepath": final_filepath,
+            "final_parent_dir": str(Path(final_filepath).parent),
+            "final_filename": output_file_name,
+            "final_ext": Path(final_filepath).suffix.lstrip("."),
+            "final_library_root": self.output_directory,
+            "subscription_name": self.name,
+            "subscription_name_sanitized": sanitize_filename(self.name),
+            **entry.to_dict(),
+            "timestamp_iso": datetime.now(timezone.utc).isoformat(),
+            "run_id": getattr(self, "_run_id", None) or uuid.uuid4().hex,
+        }
+        self._run_id = context["run_id"]
+
+        hooks = getattr(self, "hooks", None)
+        ignore_errors = getattr(hooks, "ignore_errors", False)
+        if HookRunner is not None:
+            try:
+                HookRunner.run("after_move", context)
+            except Exception:  # noqa: BLE001 - Propagate unless ignored
+                if ignore_errors:
+                    logger.exception("Error while running after_move hook")
+                else:
+                    raise
 
     def _delete_working_directory(self, is_error: bool = False) -> None:
         _ = is_error
