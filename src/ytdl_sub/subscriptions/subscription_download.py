@@ -255,6 +255,13 @@ class SubscriptionDownload(BaseSubscription, ABC):
             dry_run=dry_run, entry=entry, entry_metadata=entry_metadata
         )
 
+        if not dry_run:
+            output_file_name = self.overrides.apply_formatter(
+                formatter=self.output_options.file_name, entry=entry
+            )
+            output_path = str(Path(self.output_directory) / output_file_name)
+            self.hook_runner.after_move({"file_path": output_path})
+
         # Re-save the download archive after each entry is moved to the output directory
         if self.maintain_download_archive:
             self.download_archive.save_download_mappings()
