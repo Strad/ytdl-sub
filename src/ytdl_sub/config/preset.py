@@ -1,7 +1,5 @@
 import copy
-from typing import Any
-from typing import Dict
-from typing import List
+from typing import Any, Dict, List
 
 from mergedeep import mergedeep
 
@@ -11,6 +9,7 @@ from ytdl_sub.config.plugin.plugin_mapping import PluginMapping
 from ytdl_sub.config.plugin.preset_plugins import PresetPlugins
 from ytdl_sub.config.preset_options import OutputOptions
 from ytdl_sub.config.preset_options import YTDLOptions
+from ytdl_sub.config.validators.hooks import HooksValidator
 from ytdl_sub.config.validators.variable_validation import VariableValidation
 from ytdl_sub.downloaders.url.validators import MultiUrlValidator
 from ytdl_sub.prebuilt_presets import PREBUILT_PRESET_NAMES
@@ -28,6 +27,7 @@ PRESET_KEYS = {
     "output_options",
     "ytdl_options",
     "overrides",
+    "hooks",
     *PluginMapping.plugins(),
 }
 
@@ -93,6 +93,7 @@ class Preset(_PresetShell):
         cls._partial_validate_key(name, value, "output_options", OutputOptions)
         cls._partial_validate_key(name, value, "ytdl_options", YTDLOptions)
         cls._partial_validate_key(name, value, "overrides", Overrides)
+        cls._partial_validate_key(name, value, "hooks", HooksValidator)
 
         for plugin_name in PluginMapping.plugins():
             cls._partial_validate_key(
@@ -193,6 +194,9 @@ class Preset(_PresetShell):
 
         self.plugins: PresetPlugins = self._validate_and_get_plugins()
         self.overrides = self._validate_key(key="overrides", validator=Overrides, default={})
+        self.hooks: HooksValidator = self._validate_key(
+            key="hooks", validator=HooksValidator, default={}
+        )
 
         VariableValidation(
             downloader_options=self.downloader_options,

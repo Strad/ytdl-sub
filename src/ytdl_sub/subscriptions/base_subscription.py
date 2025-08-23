@@ -8,6 +8,7 @@ from ytdl_sub.config.plugin.preset_plugins import PresetPlugins
 from ytdl_sub.config.preset import Preset
 from ytdl_sub.config.preset_options import OutputOptions
 from ytdl_sub.config.preset_options import YTDLOptions
+from ytdl_sub.hooks import HookRunner
 from ytdl_sub.downloaders.url.validators import MultiUrlValidator
 from ytdl_sub.entries.variables.override_variables import SubscriptionVariables
 from ytdl_sub.utils.file_handler import FileHandlerTransactionLog
@@ -66,6 +67,8 @@ class BaseSubscription(ABC):
         self.name = name
         self._config_options = config_options
         self._preset_options = preset_options
+
+        self.hook_runner = HookRunner(self._preset_options.hooks.dict)
 
         # Add overrides pre-archive
         self.overrides.add(
